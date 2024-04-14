@@ -112,32 +112,41 @@ const App = () => {
   socket?.on("OpponentNotFound", function () {
     setOpponentName(false);
   });
-
+  
   socket?.on("OpponentFound", function (data) {
     setPlayingAs(data.playingAs);
     setOpponentName(data.opponentName);
   });
-
+  
   async function playOnlineClick() {
     const result = await takePlayerName();
-
+  
     if (!result.isConfirmed) {
       return;
     }
-
+  
     const username = result.value;
     setPlayerName(username);
-
+  
     const newSocket = io("http://localhost:3000", {
       autoConnect: true,
     });
-
+  
     newSocket?.emit("request_to_play", {
       playerName: username,
     });
-
+  
+    newSocket?.on("OpponentNotFound", function () {
+      setOpponentName(false);
+    });
+  
+    newSocket?.on("OpponentFound", function (data) {
+      setPlayingAs(data.playingAs);
+      setOpponentName(data.opponentName);
+    });
+  
     setSocket(newSocket);
-  }
+  }  
 
   if (!playOnline) {
     return (

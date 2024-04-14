@@ -19,45 +19,48 @@ io.on("connection", (socket) => {
     const currentUser = allUsers[socket.id];
     currentUser.playerName = data.playerName;
 
-    let opponentPlayer;
+    let roomFound = false;
 
-    for (const key in allUsers) {
-      const user = allUsers[key];
-      if (user.online && !user.playing && socket.id !== key) {
-        opponentPlayer = user;
+    // search for room where there is only one player
+    for (let i = 0; i < allRooms.length; i++) {
+      const room = allRooms[i];
+      if (!room.player2) {
+        room.player2 = currentUser;
+        roomFound = true;
+
+        currentUser.socket.emit("OpponentFound", {
+          opponentName: room.player1.playerName,
+          playingAs: "circle",
+        });
+
+        room.player1.socket.emit("OpponentFound", {
+          opponentName: currentUser.playerName,
+          playingAs: "cross",
+        });
+
+        currentUser.socket.on("playerMoveFromClient", (data) => {
+          room.player1.socket.emit("playerMoveFromServer", {
+            ...data,
+          });
+        });
+
+        room.player1.socket.on("playerMoveFromClient", (data) => {
+          currentUser.socket.emit("playerMoveFromServer", {
+            ...data,
+          });
+        });
+
         break;
       }
     }
 
-    if (opponentPlayer) {
-      allRooms.push({
-        player1: opponentPlayer,
-        player2: currentUser,
-      });
-
-      currentUser.socket.emit("OpponentFound", {
-        opponentName: opponentPlayer.playerName,
-        playingAs: "circle",
-      });
-
-      opponentPlayer.socket.emit("OpponentFound", {
-        opponentName: currentUser.playerName,
-        playingAs: "cross",
-      });
-
-      currentUser.socket.on("playerMoveFromClient", (data) => {
-        opponentPlayer.socket.emit("playerMoveFromServer", {
-          ...data,
-        });
-      });
-
-      opponentPlayer.socket.on("playerMoveFromClient", (data) => {
-        currentUser.socket.emit("playerMoveFromServer", {
-          ...data,
-        });
-      });
-    } else {
-      currentUser.socket.emit("OpponentNotFound");
+    // if such room not found, create new room
+    if (!roomFound) {
+      const newRoom = {
+        player1: currentUser,
+        player2: null,
+      };
+      allRooms.push(newRoom);
     }
   });
 
@@ -66,16 +69,20 @@ io.on("connection", (socket) => {
     currentUser.online = false;
     currentUser.playing = false;
 
-    for (let index = 0; index < allRooms.length; index++) {
-      const { player1, player2 } = allRooms[index];
+    for (let i = 0; i < allRooms.length; i++) {
+      const room = allRooms[i];
 
-      if (player1.socket.id === socket.id) {
-        player2.socket.emit("opponentLeftMatch");
+      if (room.player1 && room.player1.socket.id === socket.id) {
+        if (room.player2) {
+          room.player2.socket.emit("opponentLeftMatch");
+        }
+        allRooms.splice(i, 1);
         break;
       }
 
-      if (player2.socket.id === socket.id) {
-        player1.socket.emit("opponentLeftMatch");
+      if (room.player2 && room.player2.socket.id === socket.id) {
+        room.player1.socket.emit("opponentLeftMatch");
+        allRooms.splice(i, 1);
         break;
       }
     }

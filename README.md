@@ -1,3 +1,6 @@
+## Project base
+https://github.com/ArrayOfSilicon/tic-tac-toe-multiplayer-game-node-react-socketio
+
 ## Installation commands
 
 ### Install Node.js and check the version
@@ -22,15 +25,18 @@ npm install
 
 ## Execution commands
 
-### Run server
+### In one console, go to the `Server` folder and run the server
 ```
 node server.js
 ```
 
-### Run client
+### In second console, go to the `Client` folder and run the client
 ```
 npm run dev
 ```
+
+### You can now play tic-tac-toe at
+http://localhost:5173/
 
 ## Other useful commands
 
